@@ -1,11 +1,9 @@
 const express = require("express");
 const app = express();
-const expressError = require('./expressError');
+const expressError = require("./expressError");
 const ExpressError = require("./expressError");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-
 
 function calculateMean(nums) {
   const sum = nums.reduce((a, b) => a + b, 0);
@@ -29,49 +27,63 @@ function calculateMode(nums) {
   let maxFreq = 0;
   for (let num in freq) {
     if (freq[num] > maxFreq) {
-      mode = [num];
+      mode = [Number(num)];
       maxFreq = freq[num];
     } else if (freq[num] === maxFreq) {
-      mode.push(num);
+      mode.push(Number(num));
     }
   }
   return mode;
 }
 
 app.get("/mean", (req, res, next) => {
-  const nums = req.query.nums.split(",").map(Number);
-  for (let i = 0; i < nums.length; i++) {
-    if (isNaN(nums[i])){
-        throw new ExpressError(`${nums[i]} is not a number`, 400);
-    }
+  try {
+    const nums = req.query.nums.split(",").map((val) => {
+      const num = Number(val);
+      if (isNaN(num)) {
+        throw new ExpressError(`${val} is not a number`, 400);
+      }
+      return num;
+    });
+    const mean = calculateMean(nums);
+    res.json({ mean: mean });
+  } catch (err) {
+    next(err);
   }
-  const mean = calculateMean(nums);
-  console.log(mean);
-  res.json({ mean: mean });
 });
 
 app.get("/median", (req, res, next) => {
-  const nums = req.query.nums.split(",").map(Number);
+  if (!req.query.nums) {
+    throw new ExpressError("Numerical input is required", 400);
+  }
+  const nums = req.query.nums.split(",").map(val => {
+    const num = Number(val);
+    if(isNaN(num)) {
+        throw new ExpressError(`${val} is not a number`, 400);
+    }
+    return num;
+  });
+  
   const median = calculateMedian(nums);
-  console.log(median);
   res.json({ median: median });
 });
 
 app.get("/mode", (req, res, next) => {
   const nums = req.query.nums.split(",").map(Number);
   const mode = calculateMode(nums);
-  console.log(mode);
   res.json({ mode: mode });
 });
 
 app.use((err, req, res, next) => {
-    if (err instanceof ExpressError) {
-        res.status(err.status).send(err.msg);
-    } else {
-        res.status(500).send('Something went wrong');
-    }
+  if (err instanceof ExpressError) {
+    res.status(err.status).send(err.message);
+  } else {
+    res.status(500).send("Something went wrong");
+  }
 });
 
 app.listen(3000, () => {
   console.log("App on port 3000");
 });
+
+module.exports = app;
