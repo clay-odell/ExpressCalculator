@@ -1,7 +1,11 @@
 const express = require("express");
 const app = express();
+const expressError = require('./expressError');
+const ExpressError = require("./expressError");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
 
 function calculateMean(nums) {
   const sum = nums.reduce((a, b) => a + b, 0);
@@ -36,6 +40,11 @@ function calculateMode(nums) {
 
 app.get("/mean", (req, res, next) => {
   const nums = req.query.nums.split(",").map(Number);
+  for (let i = 0; i < nums.length; i++) {
+    if (isNaN(nums[i])){
+        throw new ExpressError(`${nums[i]} is not a number`, 400);
+    }
+  }
   const mean = calculateMean(nums);
   console.log(mean);
   res.json({ mean: mean });
@@ -53,6 +62,14 @@ app.get("/mode", (req, res, next) => {
   const mode = calculateMode(nums);
   console.log(mode);
   res.json({ mode: mode });
+});
+
+app.use((err, req, res, next) => {
+    if (err instanceof ExpressError) {
+        res.status(err.status).send(err.msg);
+    } else {
+        res.status(500).send('Something went wrong');
+    }
 });
 
 app.listen(3000, () => {
